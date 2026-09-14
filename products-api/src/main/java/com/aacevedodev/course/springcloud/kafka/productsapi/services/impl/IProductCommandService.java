@@ -1,0 +1,25 @@
+package com.aacevedodev.course.springcloud.kafka.productsapi.services.impl;
+
+import com.aacevedodev.course.springcloud.kafka.productsapi.models.Command;
+import com.aacevedodev.course.springcloud.kafka.productsapi.models.dto.ProductDto;
+import com.aacevedodev.course.springcloud.kafka.productsapi.services.ProductCommandService;
+import org.springframework.cloud.stream.function.StreamBridge;
+
+public class IProductCommandService implements ProductCommandService {
+
+    private final StreamBridge bridge;
+
+    public IProductCommandService(StreamBridge bridge) {
+        this.bridge = bridge;
+    }
+
+    @Override
+    public void sendCreate(ProductDto dto) {
+        Command<ProductDto> cmd = new Command<>("CREATE", null , dto);
+        boolean sent = this.bridge.send("commands-out-0", cmd);
+
+        if (!sent){
+            throw new IllegalArgumentException("No se pudo enviar command a Kafka.");
+        }
+    }
+}
