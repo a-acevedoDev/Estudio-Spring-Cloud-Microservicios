@@ -4,7 +4,9 @@ import com.aacevedodev.course.springcloud.kafka.productsapi.models.Command;
 import com.aacevedodev.course.springcloud.kafka.productsapi.models.dto.ProductDto;
 import com.aacevedodev.course.springcloud.kafka.productsapi.services.ProductCommandService;
 import org.springframework.cloud.stream.function.StreamBridge;
+import org.springframework.stereotype.Service;
 
+@Service
 public class IProductCommandService implements ProductCommandService {
 
     private final StreamBridge bridge;
