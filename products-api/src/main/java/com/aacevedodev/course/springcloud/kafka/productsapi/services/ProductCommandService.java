@@ -1,7 +1,10 @@
 package com.aacevedodev.course.springcloud.kafka.productsapi.services;
 
+import com.aacevedodev.course.springcloud.kafka.productsapi.models.Reply;
 import com.aacevedodev.course.springcloud.kafka.productsapi.models.dto.ProductDto;
 
+import java.time.Duration;
+
 public interface ProductCommandService {
-    void sendCreate(ProductDto dto);
+    Reply<?> sendCreateAndAwait(ProductDto dto, Duration timeout);
 }
