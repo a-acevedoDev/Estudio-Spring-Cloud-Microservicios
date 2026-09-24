@@ -2,6 +2,7 @@ package com.aacevedodev.course.springcloud.kafka.productscommand.services.impl;
 
 import com.aacevedodev.course.springcloud.kafka.productscommand.entities.Product;
 import com.aacevedodev.course.springcloud.kafka.productscommand.models.dto.ProductDto;
+import com.aacevedodev.course.springcloud.kafka.productscommand.models.mappers.Mappers;
 import com.aacevedodev.course.springcloud.kafka.productscommand.repositories.ProductRepository;
 import com.aacevedodev.course.springcloud.kafka.productscommand.services.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +18,6 @@ public class IProductService implements ProductService {
     @Override
     @Transactional
     public ProductDto create(ProductDto dto) {
-        Product product = new Product(dto.name(), dto.price());
-        Product productNew = repository.save(product);
-        return new ProductDto(productNew.getId(), productNew.getName(), product.getPrice());
+        return Mappers.toDto(repository.save(Mappers.toEntity(dto)));
     }
 }
