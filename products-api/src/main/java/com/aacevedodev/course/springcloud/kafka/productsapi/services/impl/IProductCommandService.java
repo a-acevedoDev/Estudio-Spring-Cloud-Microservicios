@@ -32,9 +32,37 @@ public class IProductCommandService implements ProductCommandService {
     @Override
     public Reply<?> sendCreateAndAwait(ProductDto dto, Duration timeout) {
         Command<ProductDto> cmd = new Command<>("CREATE", null , dto);
+        return sendAndAwait(cmd, timeout);
+    }
+
+    @Override
+    public Reply<?> sendReadAndAwait(Long id, Duration timeout) {
+        Command<ProductDto> cmd = new Command<>("READ", id , null);
+        return sendAndAwait(cmd, timeout);
+    }
+
+    @Override
+    public Reply<?> sendReadAllAndAwait(Duration timeout) {
+        Command<Object> cmd = new Command<>("READ_ALL", null , null);
+        return sendAndAwait(cmd, timeout);
+    }
+
+    @Override
+    public Reply<?> sendUpdateAndAwait(Long id, ProductDto dto, Duration timeout) {
+        Command<ProductDto> cmd = new Command<>("UPDATE", id , dto);
+        return  sendAndAwait(cmd, timeout);
+    }
+
+    @Override
+    public Reply<?> sendDeleteAndAwait(Long id, Duration timeout) {
+        Command<ProductDto> cmd = new Command<>("DELETE", id , null);
+        return  sendAndAwait(cmd, timeout);
+    }
+
+    private Reply<?> sendAndAwait(Command<?> cmd, Duration timeout) {
         String correlationId = UUID.randomUUID().toString();
-        CompletableFuture<Reply<?>> future = replyInbox.register(correlationId);
-        Message<Command<ProductDto>> msg = MessageBuilder.withPayload(cmd)
+        var future = replyInbox.register(correlationId);
+        var msg = MessageBuilder.withPayload(cmd)
                 .setHeader("correlationId", correlationId)
                 .build();
 

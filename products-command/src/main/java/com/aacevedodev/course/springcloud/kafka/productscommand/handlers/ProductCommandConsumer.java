@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -30,7 +31,7 @@ public class ProductCommandConsumer {
         return msg -> {
             Command<ProductDto> cmd = msg.getPayload();
             String type = cmd.type() == null ? "" : cmd.type().toUpperCase();
-            Reply<ProductDto> reply = null;
+            Reply<?> reply = null;
             switch (type) {
                 case "CREATE" -> {
                     if (cmd.body() == null) {
@@ -40,20 +41,56 @@ public class ProductCommandConsumer {
 
                     ProductDto productSaved = service.create(cmd.body());
                     log.info("Creando producto name={}, price={}.", productSaved.name(), productSaved.price());
-                    reply = new Reply<>("CREATE", "Producto creado satisfactoriamente.", productSaved);
+                    reply = new Reply<>("SUCCESS", "Producto creado satisfactoriamente.", productSaved);
+                }
+
+                case "READ_ONE" -> {
+                    if(cmd.id() == null) {
+                        log.warn("Id null/vacio.");
+                        reply = new Reply<>("Error", "Id nulo o vacio.", null);
+                    }
+                    ProductDto dto = service.findById(cmd.id());
+
+                    reply = (dto == null)?
+                            new Reply<>("Error", "Producto no encontrado", null):
+                            new Reply<>("SUCCESS", "products: ", dto);
+                    log.info("Buscando producto con id= {}", cmd.id());
+
+                }
+
+                case "READ_ALL" -> {
+                    List<ProductDto> dtoList = service.findAll();
+                    reply = (dtoList == null)?
+                            new Reply<>("Error", "Lista de productos vacia", null):
+                            new Reply<>("READ_ALL", "Lista de productos", dtoList);
                 }
                 case "UPDATE" -> {
-                    log.info("Modificado producto name=, price= , null, null.");
+                    if (cmd.body() == null || cmd.id() == null) {
+                        log.warn("Id y body son requeridos.");
+                        reply = new Reply<>("ERROR", "Id y body son requeridos.", null);
+                    }
+
+                    ProductDto dto = service.findById(cmd.id());
+                    if (dto == null) {
+                        new Reply<>("Error", "Producto no encontrado", null);
+                    } else {
+                        service.update(cmd.id(), dto);
+                        new Reply<>("SUCCESS", "Producto modificado", dto);
+                        log.info("Porducto modificado, new name= {}, new price= {}", dto.name(), dto.price());
+                    }
                 }
                 case "DELETE" -> {
-                    log.info("Eliminado producto id= ,name= .");
+                    if (cmd.id() == null) {
+                        log.warn("Id es requerido.");
+                        reply = new Reply<>("ERROR", "Id requerido.", null);
+                    }
+
+                    boolean result = service.delete(cmd.id());
+                    reply = (result)?
+                            new Reply<>("SUCCESS", "Producto eliminado", "deleted"):
+                            new Reply<>("Error", "Producto no encontrado", null);
                 }
-                case "READ_ALL" -> {
-                    log.info("Productos: ");
-                }
-                case "READ_ONE" -> {
-                    log.info("Producto: ");
-                }
+
                 default -> {
                     log.warn("Unknow type={}", type);
                     reply = new Reply<>("UNKNOW", "Tipo no valido", null);
