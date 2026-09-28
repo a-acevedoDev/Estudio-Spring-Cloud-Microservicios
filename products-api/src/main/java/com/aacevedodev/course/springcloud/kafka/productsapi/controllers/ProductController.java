@@ -1,6 +1,7 @@
 package com.aacevedodev.course.springcloud.kafka.productsapi.controllers;
 
 import com.aacevedodev.course.springcloud.kafka.productsapi.models.Reply;
+import com.aacevedodev.course.springcloud.kafka.productsapi.models.ReplyStatus;
 import com.aacevedodev.course.springcloud.kafka.productsapi.models.dto.ProductDto;
 import com.aacevedodev.course.springcloud.kafka.productsapi.services.ProductCommandService;
 import jakarta.validation.Valid;
@@ -21,30 +22,26 @@ public class ProductController {
 
     @PostMapping
     public ResponseEntity<?> create(@Valid @RequestBody ProductDto dto){
-        Reply<?> reply = service.sendCreateAndAwait(dto, Duration.ofSeconds(5));
-        return getResponseEntity(reply);
+        return getResponseEntity(service.sendCreateAndAwait(dto, Duration.ofSeconds(5)));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> read(@PathVariable Long id){
-        Reply<?> reply = service.sendReadAndAwait(id, Duration.ofSeconds(5));
-        return getResponseEntity(reply);
+        return getResponseEntity(service.sendReadAndAwait(id, Duration.ofSeconds(5)));
     }
 
     @GetMapping()
     public ResponseEntity<?> readAll(){
-        Reply<?> reply = service.sendReadAllAndAwait(Duration.ofSeconds(5));
-        return getResponseEntity(reply);
+        return getResponseEntity(service.sendReadAllAndAwait(Duration.ofSeconds(5)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody ProductDto dto) {
-        Reply<?> reply = service.sendUpdateAndAwait(id, dto, Duration.ofSeconds(5));
-        return getResponseEntity(reply);
+        return getResponseEntity(service.sendUpdateAndAwait(id, dto, Duration.ofSeconds(5)));
     }
 
     private static @NonNull ResponseEntity<?> getResponseEntity(Reply<?> reply) {
-        if ("SUCCESS".equalsIgnoreCase(reply.status())) {
+        if (reply.status().isSuccess()) {
             return ResponseEntity.ok(reply.body());
         }
         return ResponseEntity.ok().body(Map.of("Error", reply.message()));

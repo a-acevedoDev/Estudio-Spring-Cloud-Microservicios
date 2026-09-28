@@ -1,4 +1,6 @@
 package com.aacevedodev.course.springcloud.kafka.productscommand.models;
 
-public record Command<T>(CommandType type, Long id, T body) {
+public enum ReplyStatus {
+    SUCCESS,
+    ERROR
 }
