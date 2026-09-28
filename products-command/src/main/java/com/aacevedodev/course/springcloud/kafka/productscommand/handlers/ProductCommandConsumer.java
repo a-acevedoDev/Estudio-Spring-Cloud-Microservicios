@@ -54,7 +54,7 @@ public class ProductCommandConsumer {
                 }
                 case CommandType.READ -> {
                     if(cmd.id() == null) {
-                        log.warn("Id is required");
+                        log.warn("Id is required, please");
                         yield new Reply<>(ReplyStatus.ERROR, "Id is required", null);
                     } else {
                         ProductDto dto = service.findById(cmd.id());
@@ -73,7 +73,7 @@ public class ProductCommandConsumer {
                         log.warn("Id and body is required");
                         yield new Reply<>(ReplyStatus.ERROR, "Id and body is required", null);
                     } else {
-                        ProductDto dto = service.findById(cmd.id());
+                        ProductDto dto = service.update(cmd.id(), cmd.body());
 
                         if (dto != null) {
                             log.info("Updating product name={}, price={}", dto.name(), dto.price());

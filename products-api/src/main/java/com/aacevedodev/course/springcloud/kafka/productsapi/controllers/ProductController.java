@@ -40,6 +40,11 @@ public class ProductController {
         return getResponseEntity(service.sendUpdateAndAwait(id, dto, Duration.ofSeconds(5)));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        return getResponseEntity(service.sendDeleteAndAwait(id, Duration.ofSeconds(5)));
+    }
+
     private static @NonNull ResponseEntity<?> getResponseEntity(Reply<?> reply) {
         if (reply.status().isSuccess()) {
             return ResponseEntity.ok(reply.body());
