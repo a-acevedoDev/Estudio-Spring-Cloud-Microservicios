@@ -19,93 +19,88 @@ import java.util.function.Function;
 
 @Configuration
 public class ProductCommandConsumer {
+    private static final Logger log = LoggerFactory.getLogger(ProductCommandConsumer.class);
 
     private final ProductService service;
 
-    public ProductCommandConsumer(ProductService service) {
-        this.service = service;
+    public ProductCommandConsumer(ProductService productService) {
+        this.service = productService;
     }
 
-    private static final Logger log = LoggerFactory.getLogger(ProductCommandConsumer.class);
-
     @Bean
-    public Function<Message<Command<ProductDto>>, Message<Reply<?>>> handleCommands(){
+    public Function<Message<Command<ProductDto>>, Message<Reply<Object>>> handleCommands() {
         return msg -> {
+
+            String correlationId = msg.getHeaders().get("correlationId", String.class);
+            log.info("Recibiendo CorrelationId={}", correlationId);
+            if (correlationId == null || correlationId.isBlank()) {
+                return MessageBuilder
+                        .withPayload(new Reply<>(ReplyStatus.ERROR, "Missing correlationId", null))
+                        .build();
+            }
+
             Command<ProductDto> cmd = msg.getPayload();
-            Reply<?> reply = null;
-            switch (cmd.type()) {
+            Reply<Object> reply = switch (cmd.type()) {
                 case CommandType.CREATE -> {
-                    if (cmd.body() == null) {
-                        log.warn("Crear cuerpo vacio.");
-                        reply = new Reply<>(ReplyStatus.ERROR, "Cuerpo del producto vacio.", null);
+                    if(cmd.body() == null) {
+                        log.warn("Create Empty body");
+                        yield new Reply<>(ReplyStatus.ERROR, "Create Empty body", null);
                     }
+                    ProductDto productSave = service.create(cmd.body());
 
-                    ProductDto productSaved = service.create(cmd.body());
-                    log.info("Creando producto name={}, price={}.", productSaved.name(), productSaved.price());
-                    reply = new Reply<>(ReplyStatus.SUCCESS, "Producto creado satisfactoriamente.", productSaved);
+                    log.info("Creating product name={}, price={}", productSave.name(), productSave.price());
+                    yield new Reply<>(ReplyStatus.SUCCESS, "Create product name", productSave);
                 }
-
                 case CommandType.READ -> {
                     if(cmd.id() == null) {
-                        log.warn("Id null/vacio.");
-                        reply = new Reply<>(ReplyStatus.ERROR, "Id nulo o vacio.", null);
+                        log.warn("Id is required");
+                        yield new Reply<>(ReplyStatus.ERROR, "Id is required", null);
                     }
                     ProductDto dto = service.findById(cmd.id());
-
-                    reply = (dto == null)?
-                            new Reply<>(ReplyStatus.ERROR, "Producto no encontrado", null):
-                            new Reply<>(ReplyStatus.SUCCESS, "products: ", dto);
-                    log.info("Buscando producto con id= {}", cmd.id());
-
+                    log.info("Reading product by id");
+                    yield (dto == null)?
+                            new Reply<>(ReplyStatus.ERROR, "Product not found", null):
+                            new Reply<>(ReplyStatus.SUCCESS, "Read product name", dto);
                 }
-
                 case CommandType.READ_ALL -> {
-                    List<ProductDto> dtoList = service.findAll();
-                    reply = (dtoList == null)?
-                            new Reply<>(ReplyStatus.ERROR, "Lista de productos vacia", null):
-                            new Reply<>(ReplyStatus.SUCCESS, "Lista de productos", dtoList);
+                    log.info("Reading all products");
+                    yield new Reply<>(ReplyStatus.SUCCESS, "Read all products", service.findAll());
                 }
                 case CommandType.UPDATE -> {
-                    if (cmd.body() == null || cmd.id() == null) {
-                        log.warn("Id y body son requeridos.");
-                        reply = new Reply<>(ReplyStatus.ERROR, "Id y body son requeridos.", null);
+                    if(cmd.body() == null || cmd.id() == null) {
+                        log.warn("Id and body is required");
+                        yield new Reply<>(ReplyStatus.ERROR, "Id and body is required", null);
                     }
-
                     ProductDto dto = service.findById(cmd.id());
-                    if (dto == null) {
-                        new Reply<>(ReplyStatus.ERROR, "Producto no encontrado", null);
-                    } else {
-                        service.update(cmd.id(), dto);
-                        new Reply<>(ReplyStatus.SUCCESS, "Producto modificado", dto);
-                        log.info("Porducto modificado, new name= {}, new price= {}", dto.name(), dto.price());
+
+                    if(dto != null) {
+                        log.info("Updating product name={}, price={}", dto.name(), dto.price());
+                        yield new Reply<>(ReplyStatus.SUCCESS, "Update product name", dto);
+                    } else  {
+                        log.info("Product not found, null dto");
+                        yield new Reply<>(ReplyStatus.ERROR, "Product not found", null);
                     }
                 }
                 case CommandType.DELETE -> {
-                    if (cmd.id() == null) {
-                        log.warn("Id es requerido.");
-                        reply = new Reply<>(ReplyStatus.ERROR, "Id requerido.", null);
+                    if(cmd.id() == null) {
+                        log.warn("Id is required");
+                        yield new Reply<>(ReplyStatus.ERROR, "Id is required", null);
                     }
-
                     boolean result = service.delete(cmd.id());
-                    reply = (result)?
-                            new Reply<>(ReplyStatus.SUCCESS, "Producto eliminado", "deleted"):
-                            new Reply<>(ReplyStatus.ERROR, "Producto no encontrado", null);
-                }
+                    log.info("Deleting product");
+                    yield (result)? new Reply<>(ReplyStatus.SUCCESS, "Deleting Product", "deleted"):
+                            new Reply<>(ReplyStatus.ERROR, "Product not found", null);
 
+                }
                 default -> {
-                    log.warn("Unknow type={}", cmd.type());
-                    reply = new Reply<>(ReplyStatus.ERROR, "Tipo no valido", null);
+                    log.warn("Unknown command type={}", cmd.type());
+                    yield new Reply<>(ReplyStatus.ERROR, "Unknown command type", null);
                 }
-            }
-            String correlationId = msg.getHeaders().get("correlationId", String.class);
-            log.info("correlationId={}", correlationId);
+            };
 
-            MessageBuilder<Reply<?>> out = MessageBuilder.withPayload(reply);
-
-            if (correlationId != null) {
-                out.setHeader("correlationId", correlationId);
-            }
-            return out.build();
+            return MessageBuilder.withPayload(reply)
+                    .setHeader("correlationId", correlationId)
+                    .build();
         };
     }
 }
