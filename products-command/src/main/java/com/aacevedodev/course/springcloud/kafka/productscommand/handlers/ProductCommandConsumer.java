@@ -45,22 +45,24 @@ public class ProductCommandConsumer {
                     if(cmd.body() == null) {
                         log.warn("Create Empty body");
                         yield new Reply<>(ReplyStatus.ERROR, "Create Empty body", null);
-                    }
-                    ProductDto productSave = service.create(cmd.body());
+                    } else {
+                        ProductDto productSave = service.create(cmd.body());
 
-                    log.info("Creating product name={}, price={}", productSave.name(), productSave.price());
-                    yield new Reply<>(ReplyStatus.SUCCESS, "Create product name", productSave);
+                        log.info("Creating product name={}, price={}", productSave.name(), productSave.price());
+                        yield new Reply<>(ReplyStatus.SUCCESS, "Create product name", productSave);
+                    }
                 }
                 case CommandType.READ -> {
                     if(cmd.id() == null) {
                         log.warn("Id is required");
                         yield new Reply<>(ReplyStatus.ERROR, "Id is required", null);
+                    } else {
+                        ProductDto dto = service.findById(cmd.id());
+                        log.info("Reading product by id");
+                        yield (dto == null) ?
+                                new Reply<>(ReplyStatus.ERROR, "Product not found", null) :
+                                new Reply<>(ReplyStatus.SUCCESS, "Read product name", dto);
                     }
-                    ProductDto dto = service.findById(cmd.id());
-                    log.info("Reading product by id");
-                    yield (dto == null)?
-                            new Reply<>(ReplyStatus.ERROR, "Product not found", null):
-                            new Reply<>(ReplyStatus.SUCCESS, "Read product name", dto);
                 }
                 case CommandType.READ_ALL -> {
                     log.info("Reading all products");
@@ -70,27 +72,28 @@ public class ProductCommandConsumer {
                     if(cmd.body() == null || cmd.id() == null) {
                         log.warn("Id and body is required");
                         yield new Reply<>(ReplyStatus.ERROR, "Id and body is required", null);
-                    }
-                    ProductDto dto = service.findById(cmd.id());
+                    } else {
+                        ProductDto dto = service.findById(cmd.id());
 
-                    if(dto != null) {
-                        log.info("Updating product name={}, price={}", dto.name(), dto.price());
-                        yield new Reply<>(ReplyStatus.SUCCESS, "Update product name", dto);
-                    } else  {
-                        log.info("Product not found, null dto");
-                        yield new Reply<>(ReplyStatus.ERROR, "Product not found", null);
+                        if (dto != null) {
+                            log.info("Updating product name={}, price={}", dto.name(), dto.price());
+                            yield new Reply<>(ReplyStatus.SUCCESS, "Update product name", dto);
+                        } else {
+                            log.info("Product not found, null dto");
+                            yield new Reply<>(ReplyStatus.ERROR, "Product not found", null);
+                        }
                     }
                 }
                 case CommandType.DELETE -> {
                     if(cmd.id() == null) {
                         log.warn("Id is required");
                         yield new Reply<>(ReplyStatus.ERROR, "Id is required", null);
+                    } else {
+                        boolean result = service.delete(cmd.id());
+                        log.info("Deleting product");
+                        yield (result) ? new Reply<>(ReplyStatus.SUCCESS, "Deleting Product", "deleted") :
+                                new Reply<>(ReplyStatus.ERROR, "Product not found", null);
                     }
-                    boolean result = service.delete(cmd.id());
-                    log.info("Deleting product");
-                    yield (result)? new Reply<>(ReplyStatus.SUCCESS, "Deleting Product", "deleted"):
-                            new Reply<>(ReplyStatus.ERROR, "Product not found", null);
-
                 }
                 default -> {
                     log.warn("Unknown command type={}", cmd.type());
